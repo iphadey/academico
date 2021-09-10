@@ -267,6 +267,11 @@ class Student extends Model implements HasMedia
         return $this->belongsTo(Profession::class);
     }
 
+    public function books()
+    {
+        return $this->belongsToMany(Book::class)->withPivot('id', 'code', 'status_id', 'expiry_date');
+    }
+
     public function title()
     {
         return $this->belongsTo(Title::class);

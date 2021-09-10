@@ -195,13 +195,17 @@ class Enrollment extends Model
     public function addScholarship(Scholarship $scholarship)
     {
         $this->scholarships()->sync($scholarship);
-        $this->markAsPaid();
+        if (config('invoicing.adding_scholarship_marks_as_paid')) {
+            $this->markAsPaid();
+        }
     }
 
     public function removeScholarship($scholarship)
     {
         $this->scholarships()->detach($scholarship);
-        $this->markAsUnpaid();
+        if (config('invoicing.adding_scholarship_marks_as_paid')) {
+            $this->markAsUnpaid();
+        }
     }
 
     /** RELATIONS */
@@ -416,5 +420,25 @@ class Enrollment extends Model
     public function setTotalPriceAttribute($value)
     {
         $this->attributes['total_price'] = $value * 100;
+    }
+
+    public function getHasBookForCourseAttribute()
+    {
+        if ($this->course->books->count() > 0) {
+            foreach ($this->course->books as $book) {
+                // if the student doesn't have one of the course books
+                if ($this->student->books->where('id', $book->id)->count() == 0) {
+                    return false;
+                }
+
+                // if one book is expired
+                if ($this->student && $this->student->books->where('id', $book->id)->filter(function ($book) {
+                        return $book->pivot->expiry_date  == null || $book->pivot->expiry_date > Carbon::now();
+                    })->count() == 0) {
+                    return "EXP";
+                }
+            }
+            return "OK";
+        }
     }
 }
